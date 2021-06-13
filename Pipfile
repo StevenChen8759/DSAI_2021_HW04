@@ -9,6 +9,9 @@ pandas = "*"
 numpy = "*"
 loguru = "*"
 scikit-learn = "*"
+scipy = "*"
+joblib = "*"
+pandarallel = "*"
 
 [dev-packages]
 
