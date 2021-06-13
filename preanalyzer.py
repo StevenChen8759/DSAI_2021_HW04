@@ -9,39 +9,66 @@ from loguru import logger
 from utils import csvIO, plotter
 
 
-def query_record_count(data: pd.DataFrame,
-                       groupby_field: List[str],
-                       opfilename: str
-                       ):
+def query_original_record_count(
+    data: pd.DataFrame,
+    category_info: pd.DataFrame,
+    groupby_field: List[str],
+    opfilename: str
+):
     result = data.groupby(groupby_field).agg("count").rename({"date": "count"}, axis=1)
-
-    for i in range(22170):
-        if i not in result.index:
-            result["count"][i] = 0
-    result = result.sort_index()
     result = result[["count"]]
 
+    zero_index_list = [[idx, 0] for idx in range(22170) if idx not in result.index]
+    zero_raw_to_add = pd.DataFrame(zero_index_list, columns = ["item_id", "count"])
+    result = result.reset_index()
+    result = pd.concat([result, zero_raw_to_add]).reset_index(drop=True).sort_values("item_id")
+
     # Plot data count
-    result_np = result.to_numpy()
-    print(np.max(result_np))
+    result_np = result["count"].to_numpy()
     plotter.plot_data_count(result_np, f"{opfilename}_plot.jpg")
 
+    # Aggregate items with filter which satisfy specififc count of data
+
+    # Join with category of items
+
     # Output data count to csv file
-    csvIO.write_pd_to_csv(result, f"{opfilename}_raw.csv")
+    csvIO.write_pd_to_csv(result, f"{opfilename}_raw.csv", False)
 
 
-def wavg(input_series, origin_df, weight_name):
-    """ http://stackoverflow.com/questions/10951341/pandas-dataframe-aggregate-function-using-multiple-columns
-    In rare instance, we may not have weights, so just return the mean. Customize this if your business case
-    should return otherwise.
-    """
-    d = input_series
-    w = origin_df[weight_name].loc[input_series]
+def monthly_sales_aggregation(
+    train_data: pd.DataFrame,
+    item_category: pd.DataFrame,
+):
+    # Train data - month adjustment
+    train_data["month_no"] = train_data["date_block_num"].apply(lambda x: (x % 12) + 1)
 
-    try:
-        return (d * w).sum() / w.sum()
-    except ZeroDivisionError:
-        return d.mean()
+    # Train data - calculate total sales without refunded items
+    train_data["item_weighted_sales"] = train_data["item_price"] * train_data["item_cnt_day"]
+
+    # Train data - do statistics
+    aggregate_map = {"item_cnt_day": "sum", "item_weighted_sales": "sum"}
+
+    logger.info("Start Aggregation...")
+    train_monthly_sales: pd.DataFrame = train_data.groupby(["date_block_num", "shop_id", "item_id"]).agg(aggregate_map).reset_index()
+    logger.info("Done...")
+    train_monthly_sales["avg_item_price_weighted"] = train_monthly_sales["item_weighted_sales"] / train_monthly_sales["item_cnt_day"]
+
+    # Train data - add category information by join operation
+    train_monthly_sales = train_monthly_sales.join(item_category, on="item_id")
+
+    # Train data - reorder columns
+    sales_order = ["date_block_num",
+                   "shop_id",
+                   "item_id",
+                   "item_category_id",
+                   "item_cnt_day",
+                   "avg_item_price_weighted",
+                   "item_weighted_sales",
+                   ]
+    train_monthly_sales = train_monthly_sales[sales_order]
+    print(train_monthly_sales)
+
+    csvIO.write_pd_to_csv(train_monthly_sales, "train_monthly_sales.csv", False)
 
 
 if __name__ == "__main__":
@@ -60,21 +87,9 @@ if __name__ == "__main__":
                             ignore_index=True
                             )
 
-    print(train_data)
+    # print(train_data)
+    print(category_of_item[32])
 
-    # query_record_count(train_data, ["item_id"], "item_id_count")
+    # query_original_record_count(train_data, category_of_item, ["item_id"], "item_id_count")
 
-    # Train data - month adjustment
-    train_data["month_no"] = train_data["date_block_num"].apply(lambda x: (x % 12) + 1)
-
-    # Train data - calculate total sales without refunded items
-    train_data["item_weighted_sales"] = train_data["item_price"] * train_data["item_cnt_day"]
-
-    # Train data - do statistics
-    aggregate_map = {"item_cnt_day": "sum", "item_weighted_sales": "sum"}
-
-    logger.info("Start Aggregation...")
-    train_monthly_sales = train_data.groupby(["date_block_num", "shop_id", "item_id"]).agg(aggregate_map).reset_index()
-    logger.info("Done...")
-    print(train_monthly_sales)
-    csvIO.write_pd_to_csv(train_monthly_sales, "train_monthly_sales.csv")
+    monthly_sales_aggregation(train_data, category_of_item)
