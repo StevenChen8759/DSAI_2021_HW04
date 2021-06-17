@@ -3,15 +3,16 @@ import pandas as pd
 from pandarallel import pandarallel
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import cross_val_score
 from loguru import logger
 
 from utils import csvIO
-from preprocessor import training_data_operation
+from preprocessor import data_operation
 
 def train(
     data_X: pd.DataFrame,
     data_Y: pd.DataFrame,
-    test_ratio: float = 0.20,
+    test_ratio: float = 0.25,
 ):
     logger.info("Fit Decision Tree Regressor")
 
@@ -35,12 +36,17 @@ def train(
         criterion="mse",
         max_features="sqrt",
     )
+
     dtr_8.fit(train_X, train_Y)
+    score = dtr_8.score(test_X, test_Y)
+
+    # cv_score = cross_val_score(dtr_8, test_X, test_Y, scoring="neg_root_mean_squared_error")
+    # print(cv_score)
 
     predict_Y = dtr_8.predict(test_X)
-
     model_rmse = mean_squared_error(test_Y, predict_Y, squared=False)
-    logger.debug(f"RMSE: {model_rmse}")
+
+    logger.debug(f"Score: {score:.5f}, Prediction RMSE: {model_rmse:.5f}")
 
     return dtr_8
 

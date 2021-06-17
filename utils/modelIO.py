@@ -1,8 +1,7 @@
-
-import joblib
+import pickle
 
 def load(filename: str):
-    return joblib.load(filename)
+    return pickle.load(open(filename, "rb"))
 
-def save(model, filename):
-    joblib.dump(model, f"./output/{filename}.model")
+def save(model, filename: str):
+    pickle.dump(model, open(f"./output/{filename}.model", "wb"))

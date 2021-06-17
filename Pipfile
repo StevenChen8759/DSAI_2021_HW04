@@ -10,8 +10,9 @@ numpy = "*"
 loguru = "*"
 scikit-learn = "*"
 scipy = "*"
-joblib = "*"
 pandarallel = "*"
+xgboost = "*"
+joblib = "*"
 
 [dev-packages]
 
