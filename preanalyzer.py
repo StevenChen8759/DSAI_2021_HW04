@@ -7,6 +7,7 @@ import numpy as np
 from loguru import logger
 
 from utils import csvIO, plotter
+from preprocessor import data_integrator, sales_feature
 
 
 def query_original_record_count(
@@ -75,9 +76,6 @@ if __name__ == "__main__":
 
     item_idx = csvIO.read_csv_to_pddf("./dataset/items.csv")
 
-    # Query category number (0 ~ 83) of an item by index
-    category_of_item = item_idx["item_category_id"]
-
     month_base = datetime(2013, 1, 1)
     train_data = csvIO.read_csv_to_pddf("./dataset/sales_train.csv")
 
@@ -87,9 +85,18 @@ if __name__ == "__main__":
                             ignore_index=True
                             )
 
-    # print(train_data)
-    print(category_of_item[32])
+    print(train_data)
+    # print(category_of_item[32])
 
     # query_original_record_count(train_data, category_of_item, ["item_id"], "item_id_count")
 
-    monthly_sales_aggregation(train_data, category_of_item)
+    # monthly_sales_aggregation(train_data, category_of_item)
+
+    agg_data = data_integrator.integrate_monthly_sales(train_data)
+    # print(agg_data)
+
+    agg_data_with_category = data_integrator.join_category_info(agg_data, item_idx)
+    # print(agg_data_with_category)
+
+    category_sales_on_shop_per_month = sales_feature.shop_seasonal_sales_of_category(agg_data_with_category)
+

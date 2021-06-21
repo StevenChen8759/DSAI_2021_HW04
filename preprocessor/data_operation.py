@@ -226,7 +226,7 @@ def encode_time_series_data(data_train: pd.DataFrame):
     data_train_ts = data_original.query("date_block_num >= 6")
     # print(data_train_ts)
 
-    # Join historical sales information
+    # Join historical sales information - join data i-th month ago
     for i in range(1, 7):
         sales_px = data_original.query(f"date_block_num <= {33 - i}")
         sales_px["date_block_num"].apply(lambda x: x + i)   # shift date_block_num
