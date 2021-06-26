@@ -92,7 +92,7 @@ def main():
 
     # b. Join Category Info
     logger.info("Join category information.")
-    agg_sales_train_data = data_integrator.join_category_info(agg_sales_train_data , item_info)
+    agg_sales_train_data = data_integrator.join_category_info(agg_sales_train_data, item_info)
 
     # c. Permutate agg_sales_train_data
     agg_sales_train_data = agg_sales_train_data[
